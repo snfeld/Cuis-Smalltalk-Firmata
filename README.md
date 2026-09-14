@@ -1,4 +1,5 @@
 # Firmata
 Smalltalk implementation of the Firmata Protocol
 
-Comming soon
+Requires Cuis-Smalltalk-SerialPort to access the serial port.
+Verified working on Linux Cuis7.8 and Cuis7.6.
