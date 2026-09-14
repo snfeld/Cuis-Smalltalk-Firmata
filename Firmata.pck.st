@@ -43,13 +43,13 @@ firmata isConnected.
 firmata digitalPin: 13 mode: FirmataConstants pinModeOutput.
 
 firmata digitalWrite: 13 value: 1.
-(Delay forSeconds: 1) wait..
+(Delay forSeconds: 1) wait.
 firmata digitalWrite: 13 value: 0.
-(Delay forSeconds: 1) wait..
+(Delay forSeconds: 1) wait.
 firmata digitalWrite: 13 value: 1.
-(Delay forSeconds: 1) wait..
+(Delay forSeconds: 1) wait.
 firmata digitalWrite: 13 value: 0.
-(Delay forSeconds: 1) wait..
+(Delay forSeconds: 1) wait.
 firmata digitalWrite: 13 value: 1.
 
 firmata disconnect.
