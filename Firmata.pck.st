@@ -1,6 +1,6 @@
-'From Cuis7.8 [latest update: #7977] on 12 September 2026 at 12:23:41 pm'!
+'From Cuis7.8 [latest update: #7977] on 14 September 2026 at 12:45:22 pm'!
 'Description Please enter a description for this package'!
-!provides: 'Firmata' 1 3!
+!provides: 'Firmata' 1 4!
 !requires: 'SerialPort' 1 2 nil!
 SystemOrganization addCategory: #Firmata!
 
@@ -25,8 +25,7 @@ Object subclass: #FirmataConstants
 FirmataConstants class
 	instanceVariableNames: ''!
 
-
-!Firmata commentStamp: '<historical>' prior: 0!
+!Firmata commentStamp: 'GuillermoPolito 3/29/2017 15:53' prior: 0!
 I am an implementation of the Firmata protocol for talking to an Arduino board. 
 For more information check: http://www.firmata.org/
 
@@ -90,29 +89,33 @@ version
 "self queryVersion."
 ^(majorVersion asString , '.', minorVersion asString) asNumber! !
 
-!Firmata methodsFor: 'stepping' stamp: 'sf 12/Sep/2026 11:25:49'!
+!Firmata methodsFor: 'stepping' stamp: 'sf 14/Sep/2026 10:15:37'!
 startSteppingProcess
-"Poll the serial port from a background process that stops by itself once the connection is closed. See #step for connection errors."
-
+	"Poll the serial/network port from a background process that stops by itself
+	once the connection is closed. See #step for connection errors.
+	In Cuis, #forkNamed: does not answer the new Process, so build it
+	explicitly to keep a handle for #stopSteppingProcess."
 	steppingProcess notNil
 		ifTrue: [^ self].
-       steppingProcess := [
-               [[ self isConnected ] whileTrue: [
-                       self step.
-                       (Delay forMilliseconds: self stepTime) wait]]
-                       ensure: [ steppingProcess := nil ]]
-                       forkNamed: self asString
-! !
+	steppingProcess := [
+		[[ self isConnected ] whileTrue: [
+			self step.
+			(Delay forMilliseconds: self stepTime) wait]]
+			ensure: [ steppingProcess := nil ]]
+			newProcess.
+	steppingProcess priority: Processor activePriority.
+	steppingProcess name: self asString.
+	steppingProcess resume ! !
 
 !Firmata methodsFor: 'stepping' stamp: 'sf 12/Sep/2026 11:18:53'!
 step
-"A serial error makes the connection unusable. Drop the port so that #startSteppingProcess sees the connection as closed and stops."
-
-       [ self processInput ]
-               on: Error
-               do: [ :error |
-                       port := nil.
-                       Transcript show: 'Firmata connection error: ' , error messageText ]! !
+	"A serial error makes the connection unusable. Drop the port so that
+	#startSteppingProcess sees the connection as closed and stops."
+	[ self processInput ]
+		on: Error
+		do: [ :error |
+			port := nil.
+			Transcript show: 'Firmata connection error: ' , error messageText ] ! !
 
 !Firmata methodsFor: 'stepping' stamp: 'GitHub 1/Aug/2017 12:33:41'!
 stepTime
@@ -169,18 +172,18 @@ parseData: inputByte
 				[FirmataConstants digitalMessage] -> [
 						self setDigitalInputs: multiByteChannel data: (storedInputData first bitShift: 7)
 						+ storedInputData second].
-				[FirmataConstants reportVersion] -> [self majorVersion: storedInputData first minorVersion: storedInputData second]}
+				[FirmataConstants reportVersion] -> [self majorVersion: storedInputData second minorVersion: storedInputData first]}
 				 otherwise: [].
 			executeMultiByteCommand := 0]! !
 
 !Firmata methodsFor: 'receiving' stamp: 'sf 12/Sep/2026 11:15:42'!
 parseSysex: inputByte 
 	inputByte = FirmataConstants endSysex
-              ifTrue: [parsingSysex := false.
-                      sysexBytesRead := 0]
-              ifFalse: [sysexBytesRead < storedInputData size
-                              ifTrue: [storedInputData at: sysexBytesRead + 1 put: inputByte].
-                      sysexBytesRead := sysexBytesRead + 1]! !
+		ifTrue: [parsingSysex := false.
+			sysexBytesRead := 0]
+		ifFalse: [sysexBytesRead < storedInputData size
+				ifTrue: [storedInputData at: sysexBytesRead + 1 put: inputByte].
+			sysexBytesRead := sysexBytesRead + 1]! !
 
 !Firmata methodsFor: 'receiving' stamp: 'GitHub 1/Aug/2017 12:33:41'!
 processInput
@@ -197,7 +200,7 @@ parsingSysex
 						ifTrue: [self parseData: inputByte]
 						ifFalse: [self parseCommandHeader: inputByte]]]! !
 
-!Firmata methodsFor: 'testing' stamp: 'SF 12/Sep/2026 01:06:11'!
+!Firmata methodsFor: 'testing' stamp: 'sf 12/Sep/2026 01:06:11'!
 isFirmataInstalled
 "I check if Firmata responds well to queryVersion. I try for 5 seconds"
 | t timeout |
@@ -400,15 +403,15 @@ connectOnPort: portName baudRate: aNumber
 
 !Firmata methodsFor: 'connection' stamp: 'sf 12/Sep/2026 11:19:56'!
 disconnect
-"Stop the background process and release the serial port. Safe to call multiple times and when the connection is already broken."
-
-       self stopSteppingProcess.
-       port ifNotNil: [
-               [ port close ]
-                       on: Error
-                       do: [ :error | ] ].
-       port := nil.
-       self initializeVariables! !
+	"Stop the background process and release the serial port. Safe to
+	call multiple times and when the connection is already broken."
+	self stopSteppingProcess.
+	port ifNotNil: [
+		[ port close ]
+			on: Error
+			do: [ :error | ] ].
+	port := nil.
+	self initializeVariables ! !
 
 !Firmata methodsFor: 'connection' stamp: 'GitHub 1/Aug/2017 12:33:41'!
 isConnected
